@@ -1,7 +1,8 @@
 use std::net::TcpListener;
+use std::thread;
+use std::sync::{Arc, Mutex};
 mod storage;
 mod connection;
-use std::thread;
 
 const TCP_PORT: u16 = 1984;
 const HOST: &'static str = "127.0.0.1";
@@ -9,14 +10,16 @@ const HOST: &'static str = "127.0.0.1";
 // const MAX_MEMORY: u64 = 1024;
 
 fn main() {
-    let storage = storage::Storage::new();
+    let storage = Arc::new(Mutex::new(storage::Storage::new()));
+
     let addr = format!("{}:{}", HOST, TCP_PORT);
     let listener = TcpListener::bind(addr).unwrap();
 
     for stream in listener.incoming() {
+        let storage_ref = Arc::clone(&storage);
         thread::spawn(move || {
             let mut conn = connection::Connection::new();
-            conn.handle(stream);
+            conn.handle(stream, storage_ref);
         });
     }
 }

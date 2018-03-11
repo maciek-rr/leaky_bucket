@@ -1,7 +1,7 @@
 use std::net::TcpStream;
-use std::io::BufReader;
-use std::io::BufRead;
-use std::io::Error;
+use std::io::{BufReader, BufRead, Error, Write};
+use std::sync::{Arc, Mutex};
+use storage;
 
 #[derive(Debug)]
 enum Command {
@@ -39,7 +39,10 @@ impl ProtocolParser {
         };
 
         let bytes = String::from(tokens[2]).into_bytes();
-        let cmd = Command::Push { priority: priority_result.unwrap(), data: Box::new(bytes) };
+        let cmd = Command::Push {
+            priority: priority_result.unwrap(),
+            data: Box::new(bytes),
+        };
         Ok(cmd)
     }
 
@@ -49,8 +52,8 @@ impl ProtocolParser {
             1
         } else {
             match tokens[1].parse::<usize>() {
-                Ok(num) => { num }
-                Err(e) => { 1 }
+                Ok(num) => num,
+                Err(e) => 1,
             }
         };
         Ok(Command::Pop { number: pop_number })
@@ -64,16 +67,21 @@ impl Connection {
         Connection {}
     }
 
-    pub fn handle(&mut self, stream: Result<TcpStream, Error>) {
+    pub fn handle(
+        &mut self,
+        stream: Result<TcpStream, Error>,
+        storage: Arc<Mutex<storage::Storage>>,
+    ) {
         match stream {
             Ok(stream) => {
-                self.handle_stream(stream);
+                self.handle_stream(stream, storage);
             }
             Err(e) => println!("Error handling connection {:?}", e),
         }
     }
 
-    fn handle_stream(&mut self, stream: TcpStream) {
+    fn handle_stream(&mut self, stream: TcpStream, storage: Arc<Mutex<storage::Storage>>) {
+        let mut writer = stream.try_clone().expect("Clone failed");
         let reader = BufReader::new(stream);
 
         for line_result in reader.lines() {
@@ -81,6 +89,19 @@ impl Connection {
                 Ok(l) => match ProtocolParser::parse_line(&l) {
                     Ok(cmd) => {
                         println!("Parsed command: {:?}", cmd);
+                        let mut s = storage.lock().unwrap();
+                        let mut response_text = match cmd {
+                            Command::Pop { number } => match s.pop() {
+                                Some(storage_item) => storage_item.data,
+                                None => Box::new(b"".to_vec())
+                            },
+                            Command::Push { priority, data } => {
+                                s.push(priority, data);
+                                Box::new(b"OK".to_vec())
+                            }
+                        };
+                        response_text.push(b"\n"[0]);
+                        writer.write(&response_text);
                     }
                     Err(e) => {
                         println!("{:?}", e);
