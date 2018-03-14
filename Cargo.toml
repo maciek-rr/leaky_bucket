@@ -2,3 +2,8 @@
 name = "leaky_bucket"
 version = "0.1.0"
 authors = ["Maciek Dubiński <maciek@dubinski.net>"]
+
+[dependencies]
+serde="*"
+bincode="*"
+serde_derive="*"

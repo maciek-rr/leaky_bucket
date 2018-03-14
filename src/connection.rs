@@ -5,7 +5,7 @@ use storage;
 
 #[derive(Debug)]
 enum Command {
-    Pop { number: usize },
+    Pop { _number: usize },
     Push { priority: u16, data: Box<Vec<u8>> },
 }
 
@@ -53,10 +53,10 @@ impl ProtocolParser {
         } else {
             match tokens[1].parse::<usize>() {
                 Ok(num) => num,
-                Err(e) => 1,
+                Err(_e) => 1,
             }
         };
-        Ok(Command::Pop { number: pop_number })
+        Ok(Command::Pop { _number: pop_number })
     }
 }
 
@@ -91,7 +91,7 @@ impl Connection {
                         println!("Parsed command: {:?}", cmd);
                         let mut s = storage.lock().unwrap();
                         let mut response_text = match cmd {
-                            Command::Pop { number } => match s.pop() {
+                            Command::Pop { _number } => match s.pop() {
                                 Some(storage_item) => storage_item.data,
                                 None => Box::new(b"".to_vec())
                             },
@@ -101,7 +101,7 @@ impl Connection {
                             }
                         };
                         response_text.push(b"\n"[0]);
-                        writer.write(&response_text);
+                        writer.write(&response_text).unwrap();
                     }
                     Err(e) => {
                         println!("{:?}", e);

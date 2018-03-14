@@ -1,8 +1,15 @@
+#[macro_use]
+extern crate serde_derive;
+
+extern crate serde;
+extern crate bincode;
+
 use std::net::TcpListener;
 use std::thread;
 use std::sync::{Arc, Mutex};
 mod storage;
 mod connection;
+
 
 const TCP_PORT: u16 = 1984;
 const HOST: &'static str = "127.0.0.1";
@@ -11,7 +18,7 @@ const HOST: &'static str = "127.0.0.1";
 
 fn main() {
     let storage = Arc::new(Mutex::new(storage::Storage::new()));
-
+    storage.lock().unwrap().load();
     let addr = format!("{}:{}", HOST, TCP_PORT);
     let listener = TcpListener::bind(addr).unwrap();
 

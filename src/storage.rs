@@ -1,3 +1,14 @@
+extern crate serde;
+extern crate bincode;
+
+use bincode::{serialize, deserialize};
+use std::fs::File;
+use std::fs::OpenOptions;
+use std::io::prelude::*;
+
+const DUMP_NAME: &'static str = "dump.bin";
+
+#[derive(Serialize, Deserialize, Debug)]
 pub struct StorageItem {
     pub priority: u16,
     pub data: Box<Vec<u8>>,
@@ -18,7 +29,8 @@ impl Storage {
         self.elements.push(StorageItem {
             priority: priority,
             data: payload,
-        })
+        });
+        self.dump();
     }
 
     pub fn pop(&mut self) -> Option<StorageItem> {
@@ -30,8 +42,9 @@ impl Storage {
                     .iter()
                     .position(|elem| elem.priority == priority)
                     .unwrap();
-
-                Some(self.elements.remove(item_index))
+                let elem = self.elements.remove(item_index);
+                self.dump();
+                Some(elem)
             }
         }
     }
@@ -48,6 +61,27 @@ impl Storage {
             }
         });
         Some(max_priority)
+    }
+
+    pub fn dump(&self) {
+        let serialized = serialize(&self.elements).unwrap();
+        let mut dump_file = File::create(DUMP_NAME).unwrap();
+        dump_file.write(&serialized).expect("Failed to dump the data");
+    }
+
+    pub fn load(&mut self) {
+        let file = OpenOptions::new().read(true).open(DUMP_NAME);
+        match file {
+            Ok(mut open_file) => {
+                let mut buf: &mut Vec<u8> = &mut vec!();
+                let read_bytes = open_file.read_to_end(&mut buf).unwrap();
+                println!("Read {} bytes from the dump file.", read_bytes);
+                self.elements = deserialize(&buf[..]).unwrap();
+            }
+            Err(e) => {
+                println!("No dump file, or error opening dump file file ({:?}", e);
+            }
+        }
     }
 }
 
