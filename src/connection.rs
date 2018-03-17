@@ -67,10 +67,10 @@ impl Connection {
         Connection {}
     }
 
-    pub fn handle(
+    pub fn handle<T: storage::Storage>(
         &mut self,
         stream: Result<TcpStream, Error>,
-        storage: Arc<Mutex<storage::Storage>>,
+        storage: Arc<Mutex<T>>,
     ) {
         match stream {
             Ok(stream) => {
@@ -80,7 +80,7 @@ impl Connection {
         }
     }
 
-    fn handle_stream(&mut self, stream: TcpStream, storage: Arc<Mutex<storage::Storage>>) {
+    fn handle_stream<T: storage::Storage>(&mut self, stream: TcpStream, storage: Arc<Mutex<T>>) {
         let mut writer = stream.try_clone().expect("Clone failed");
         let reader = BufReader::new(stream);
 
@@ -88,7 +88,6 @@ impl Connection {
             match line_result {
                 Ok(l) => match ProtocolParser::parse_line(&l) {
                     Ok(cmd) => {
-                        println!("Parsed command: {:?}", cmd);
                         let mut s = storage.lock().unwrap();
                         let mut response_text = match cmd {
                             Command::Pop { _number } => match s.pop() {
