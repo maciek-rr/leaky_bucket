@@ -1,5 +1,3 @@
-extern crate bincode;
-
 use storage::*;
 
 const DUMP_NAME: &'static str = "dump.bin";
@@ -8,15 +6,13 @@ pub struct OrderedStorage {
     elements: Box<Vec<StorageItem>>,
 }
 
-impl OrderedStorage {
-    pub fn new() -> Self {
+impl Storage for OrderedStorage {
+    fn new() -> Self {
         OrderedStorage {
             elements: Box::new(vec![]),
         }
     }
-}
 
-impl Storage for OrderedStorage {
     fn push(&mut self, priority: u16, payload: Box<Vec<u8>>) {
         let mut index = 0;
         {

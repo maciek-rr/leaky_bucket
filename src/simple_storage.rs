@@ -4,7 +4,6 @@ use bincode::{deserialize, serialize};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
-
 use storage::*;
 
 const DUMP_NAME: &'static str = "dump.bin";
@@ -13,15 +12,13 @@ pub struct SimpleStorage {
     elements: Box<Vec<StorageItem>>,
 }
 
-impl SimpleStorage {
-    pub fn new() -> Self {
+impl Storage for SimpleStorage {
+    fn new() -> Self {
         SimpleStorage {
             elements: Box::new(vec![]),
         }
     }
-}
 
-impl Storage for SimpleStorage {
     fn push(&mut self, priority: u16, payload: Box<Vec<u8>>) {
         self.elements.push(StorageItem {
             priority: priority,
