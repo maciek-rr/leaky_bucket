@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::io::{BufReader, BufRead, Error, Write};
+use std::io::{BufRead, BufReader, Error, Write};
 use std::sync::{Arc, Mutex};
 use storage;
 
@@ -56,7 +56,9 @@ impl ProtocolParser {
                 Err(_e) => 1,
             }
         };
-        Ok(Command::Pop { _number: pop_number })
+        Ok(Command::Pop {
+            _number: pop_number,
+        })
     }
 }
 
@@ -92,7 +94,7 @@ impl Connection {
                         let mut response_text = match cmd {
                             Command::Pop { _number } => match s.pop() {
                                 Some(storage_item) => storage_item.data,
-                                None => Box::new(b"".to_vec())
+                                None => Box::new(b"".to_vec()),
                             },
                             Command::Push { priority, data } => {
                                 s.push(priority, data);

@@ -1,6 +1,5 @@
 extern crate serde;
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StorageItem {
     pub priority: u16,

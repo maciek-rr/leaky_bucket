@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
 
-extern crate serde;
 extern crate bincode;
+extern crate serde;
 
 use std::net::TcpListener;
 use std::thread;

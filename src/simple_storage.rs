@@ -1,6 +1,6 @@
 extern crate bincode;
 
-use bincode::{serialize, deserialize};
+use bincode::{deserialize, serialize};
 use std::fs::File;
 use std::fs::OpenOptions;
 use std::io::prelude::*;
@@ -38,7 +38,7 @@ impl Storage for SimpleStorage {
                     .iter()
                     .position(|elem| elem.priority == priority)
                     .unwrap();
-                let elem = self.elements.swap_remove(item_index);
+                let elem = self.elements.remove(item_index);
                 Some(elem)
             }
         }
@@ -61,14 +61,16 @@ impl Storage for SimpleStorage {
     fn dump(&self) {
         let serialized = serialize(&self.elements).unwrap();
         let mut dump_file = File::create(DUMP_NAME).unwrap();
-        dump_file.write(&serialized).expect("Failed to dump the data");
+        dump_file
+            .write(&serialized)
+            .expect("Failed to dump the data");
     }
 
     fn load(&mut self) {
         let file = OpenOptions::new().read(true).open(DUMP_NAME);
         match file {
             Ok(mut open_file) => {
-                let mut buf: &mut Vec<u8> = &mut vec!();
+                let mut buf: &mut Vec<u8> = &mut vec![];
                 let read_bytes = open_file.read_to_end(&mut buf).unwrap();
                 println!("Read {} bytes from the dump file.", read_bytes);
                 self.elements = deserialize(&buf[..]).unwrap();
@@ -85,7 +87,25 @@ mod test {
     use super::*;
 
     #[test]
-    fn it_works() {
+    fn it_works_for_no_elements() {
+        let mut instance = SimpleStorage::new();
+        let opt = instance.pop();
+        assert_eq!(opt.is_none(), true);
+    }
+
+    #[test]
+    fn it_works_for_a_single_element() {
+        let mut instance = SimpleStorage::new();
+        instance.push(10, Box::new(vec![2]));
+        let opt = instance.pop().unwrap();
+        assert_eq!(opt.priority, 10);
+        assert_eq!(opt.data[0], 2);
+        let opt2 = instance.pop();
+        assert_eq!(opt2.is_none(), true);
+    }
+
+    #[test]
+    fn it_works_for_2_elements() {
         let mut instance = SimpleStorage::new();
         instance.push(10, Box::new(vec![2]));
         instance.push(2, Box::new(vec![1]));
@@ -100,6 +120,31 @@ mod test {
     }
 
     #[test]
+    fn it_preserves_order_for_the_same_priority() {
+        let mut instance = SimpleStorage::new();
+        instance.push(2, Box::new(vec![1]));
+        instance.push(2, Box::new(vec![2]));
+        instance.push(2, Box::new(vec![3]));
+        instance.push(4, Box::new(vec![4]));
+
+        let opt = instance.pop().unwrap();
+        assert_eq!(opt.priority, 4);
+        assert_eq!(opt.data[0], 4);
+
+        let opt2 = instance.pop().unwrap();
+        assert_eq!(opt2.priority, 2);
+        assert_eq!(opt2.data[0], 1);
+
+        let opt3 = instance.pop().unwrap();
+        assert_eq!(opt3.priority, 2);
+        assert_eq!(opt3.data[0], 2);
+
+        let opt4 = instance.pop().unwrap();
+        assert_eq!(opt4.priority, 2);
+        assert_eq!(opt4.data[0], 3);
+    }
+
+    #[test]
     fn it_returns_correct_max_priority() {
         let mut instance = SimpleStorage::new();
         instance.push(10, Box::new(vec![1]));
@@ -109,4 +154,5 @@ mod test {
         instance.push(0, Box::new(vec![1]));
         assert_eq!(instance.max_priority(), Some(11));
     }
+
 }
