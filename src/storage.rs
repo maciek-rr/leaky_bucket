@@ -13,4 +13,5 @@ pub trait Storage {
     fn dump(&self);
     fn load(&mut self);
     fn max_priority(&self) -> Option<u16>;
+    fn clear(&mut self);
 }

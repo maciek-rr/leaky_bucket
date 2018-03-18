@@ -77,6 +77,10 @@ impl Storage for SimpleStorage {
             }
         }
     }
+
+    fn clear(&mut self) {
+        self.elements.clear();
+    }
 }
 
 #[cfg(test)]
@@ -152,4 +156,12 @@ mod test {
         assert_eq!(instance.max_priority(), Some(11));
     }
 
+    #[test]
+    fn it_clears() {
+        let mut instance = SimpleStorage::new();
+        instance.push(10, Box::new(vec![1]));
+        instance.clear();
+        let opt = instance.pop();
+        assert_eq!(opt.is_none(), true);
+    }
 }

@@ -7,6 +7,7 @@ use storage;
 enum Command {
     Pop { _number: usize },
     Push { priority: u16, data: Box<Vec<u8>> },
+    Clear
 }
 
 struct ProtocolParser {}
@@ -23,6 +24,7 @@ impl ProtocolParser {
         match &cmd as &str {
             "pop" => Self::pop(tokens),
             "push" => Self::push(tokens),
+            "clear" => Self::clear(),
             _ => Err(format!("Unrecognized command {}", line)),
         }
     }
@@ -59,6 +61,10 @@ impl ProtocolParser {
         Ok(Command::Pop {
             _number: pop_number,
         })
+    }
+
+    fn clear() -> Result<Command, String> {
+        Ok(Command::Clear)
     }
 }
 
@@ -98,6 +104,10 @@ impl Connection {
                             },
                             Command::Push { priority, data } => {
                                 s.push(priority, data);
+                                Box::new(b"OK".to_vec())
+                            },
+                            Command::Clear => {
+                                s.clear();
                                 Box::new(b"OK".to_vec())
                             }
                         };

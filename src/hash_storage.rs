@@ -1,53 +1,53 @@
 use storage::*;
+use std::collections::HashMap;
+use std::ops::Deref;
 
-const DUMP_NAME: &'static str = "dump.bin";
-
-pub struct OrderedStorage {
-    elements: Box<Vec<StorageItem>>,
+pub struct HashStorage {
+    elements: Box<HashMap<u16, Vec<StorageItem>>>,
 }
 
-impl Storage for OrderedStorage {
+impl Storage for HashStorage {
     fn new() -> Self {
-        OrderedStorage {
-            elements: Box::new(vec![]),
+        HashStorage {
+            elements: Box::new(HashMap::new())
         }
     }
 
     fn push(&mut self, priority: u16, payload: Box<Vec<u8>>) {
-        let mut index = 0;
-        {
-            let lesser_priority_element = self.elements.iter().find(|storage_item| {
-                index += 1;
-                storage_item.priority < priority
-            });
-
-            match lesser_priority_element {
-                Some(elem) => index -= 1,
-                None => {}
-            }
-        }
-
-        self.elements.insert(
-            index,
-            StorageItem {
-                priority: priority,
-                data: payload,
-            },
-        );
+        let storage_item = StorageItem {
+            priority: priority,
+            data: payload,
+        };
+        match self.elements.contains_key(&priority) {
+            true => self.elements.get_mut(&priority).unwrap().push(storage_item),
+            false => { self.elements.insert(priority, vec![storage_item]); }
+        };
     }
 
     fn pop(&mut self) -> Option<StorageItem> {
-        if self.elements.is_empty() {
-            None
-        } else {
-            Some(self.elements.remove(0))
+        match self.max_priority() {
+            Some(priority) => {
+                let mut priority_elements = self.elements.get_mut(&priority).unwrap();
+                Some(priority_elements.remove(0))
+            }
+            None => None,
         }
     }
 
     fn max_priority(&self) -> Option<u16> {
-        match self.elements.first() {
-            Some(element) => Some(element.priority),
-            None => None,
+        let mut max_priority: u16 = 0;
+        let mut found = false;
+
+        for (priority, elements) in self.elements.iter() {
+            if !elements.is_empty() {
+                found = true;
+                if *priority > max_priority { max_priority = *priority }
+            }
+        }
+
+        match found {
+            true => Some(max_priority),
+            false => None
         }
     }
 
@@ -65,14 +65,14 @@ mod test {
 
     #[test]
     fn it_works_for_no_elements() {
-        let mut instance = OrderedStorage::new();
+        let mut instance = HashStorage::new();
         let opt = instance.pop();
         assert_eq!(opt.is_none(), true);
     }
 
     #[test]
     fn it_works_for_a_single_element() {
-        let mut instance = OrderedStorage::new();
+        let mut instance = HashStorage::new();
         instance.push(10, Box::new(vec![2]));
         let opt = instance.pop().unwrap();
         assert_eq!(opt.priority, 10);
@@ -83,7 +83,7 @@ mod test {
 
     #[test]
     fn it_works_for_2_elements() {
-        let mut instance = OrderedStorage::new();
+        let mut instance = HashStorage::new();
         instance.push(10, Box::new(vec![2]));
         instance.push(2, Box::new(vec![1]));
         let opt = instance.pop().unwrap();
@@ -98,7 +98,7 @@ mod test {
 
     #[test]
     fn it_preserves_order_for_the_same_priority() {
-        let mut instance = OrderedStorage::new();
+        let mut instance = HashStorage::new();
         instance.push(2, Box::new(vec![1]));
         instance.push(2, Box::new(vec![2]));
         instance.push(2, Box::new(vec![3]));
@@ -123,7 +123,8 @@ mod test {
 
     #[test]
     fn it_returns_correct_max_priority() {
-        let mut instance = OrderedStorage::new();
+        let mut instance = HashStorage::new();
+
         instance.push(10, Box::new(vec![1]));
         instance.push(2, Box::new(vec![1]));
         instance.push(11, Box::new(vec![1]));
@@ -134,7 +135,7 @@ mod test {
 
     #[test]
     fn it_clears() {
-        let mut instance = OrderedStorage::new();
+        let mut instance = HashStorage::new();
         instance.push(10, Box::new(vec![1]));
         instance.clear();
         let opt = instance.pop();
