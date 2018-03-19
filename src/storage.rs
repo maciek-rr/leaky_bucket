@@ -9,7 +9,7 @@ pub struct StorageItem {
 pub trait Storage {
     fn new() -> Self;
     fn push(&mut self, priority: u16, payload: Box<Vec<u8>>);
-    fn pop(&mut self) -> Option<StorageItem>;
+    fn pop(&mut self, count: usize) -> Option<Vec<StorageItem>>;
     fn dump(&self);
     fn load(&mut self);
     fn max_priority(&self) -> Option<u16>;

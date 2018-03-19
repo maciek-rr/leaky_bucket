@@ -5,9 +5,9 @@ use storage;
 
 #[derive(Debug)]
 enum Command {
-    Pop { _number: usize },
+    Pop { count: usize },
     Push { priority: u16, data: Box<Vec<u8>> },
-    Clear
+    Clear,
 }
 
 struct ProtocolParser {}
@@ -50,7 +50,7 @@ impl ProtocolParser {
 
     // pop [number or no number]
     fn pop(tokens: Vec<&str>) -> Result<Command, String> {
-        let pop_number: usize = if tokens.len() < 2 {
+        let count: usize = if tokens.len() < 2 {
             1
         } else {
             match tokens[1].parse::<usize>() {
@@ -58,9 +58,7 @@ impl ProtocolParser {
                 Err(_e) => 1,
             }
         };
-        Ok(Command::Pop {
-            _number: pop_number,
-        })
+        Ok(Command::Pop { count: count })
     }
 
     fn clear() -> Result<Command, String> {
@@ -94,33 +92,32 @@ impl Connection {
 
         for line_result in reader.lines() {
             match line_result {
+                Err(e) => println!("Error reading line {:?}", e),
                 Ok(l) => match ProtocolParser::parse_line(&l) {
+                    Err(e) => println!("{:?}", e),
                     Ok(cmd) => {
                         let mut s = storage.lock().unwrap();
-                        let mut response_text = match cmd {
-                            Command::Pop { _number } => match s.pop() {
-                                Some(storage_item) => storage_item.data,
-                                None => Box::new(b"".to_vec()),
+                        match cmd {
+                            Command::Pop { count } => match s.pop(count) {
+                                Some(storage_items) => for storage_item in storage_items {
+                                    writer.write(&storage_item.data).unwrap();
+                                    writer.write(b"\n").unwrap();
+                                },
+                                None => {
+                                    writer.write(b"\n").unwrap();
+                                }
                             },
                             Command::Push { priority, data } => {
                                 s.push(priority, data);
-                                Box::new(b"OK".to_vec())
-                            },
+                                writer.write(b"OK\n").unwrap();
+                            }
                             Command::Clear => {
                                 s.clear();
-                                Box::new(b"OK".to_vec())
+                                writer.write(b"OK\n").unwrap();
                             }
                         };
-                        response_text.push(b"\n"[0]);
-                        writer.write(&response_text).unwrap();
-                    }
-                    Err(e) => {
-                        println!("{:?}", e);
                     }
                 },
-                Err(e) => {
-                    println!("Error reading line {:?}", e);
-                }
             }
         }
     }

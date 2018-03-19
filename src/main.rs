@@ -8,13 +8,9 @@ use std::net::TcpListener;
 use std::thread;
 use std::sync::{Arc, Mutex};
 mod storage;
-mod simple_storage;
-mod ordered_storage;
 mod hash_storage;
 mod connection;
 use storage::Storage;
-use simple_storage::SimpleStorage;
-use ordered_storage::OrderedStorage;
 use hash_storage::HashStorage;
 
 const TCP_PORT: u16 = 1984;
