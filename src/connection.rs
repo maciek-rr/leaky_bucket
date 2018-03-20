@@ -78,34 +78,37 @@ impl Connection {
         let reader = BufReader::new(stream);
 
         for line_result in reader.lines() {
-            match line_result {
-                Err(e) => println!("Error reading line {:?}", e),
-                Ok(l) => match ProtocolParser::parse_line(&l) {
-                    Err(e) => println!("{:?}", e),
-                    Ok(cmd) => {
-                        let mut s = storage.lock().unwrap();
-                        match cmd {
-                            Command::Pop { count } => match s.pop(count) {
-                                Some(storage_items) => for storage_item in storage_items {
-                                    writer.write(&storage_item.data).unwrap();
-                                    writer.write(b"\n").unwrap();
-                                },
-                                None => {
-                                    writer.write(b"\n").unwrap();
-                                }
-                            },
-                            Command::Push { priority, data } => {
-                                s.push(priority, data);
-                                writer.write(b"OK\n").unwrap();
-                            }
-                            Command::Clear => {
-                                s.clear();
-                                writer.write(b"OK\n").unwrap();
-                            }
-                        };
+            if line_result.is_err() {
+                println!("Error reading line {:?}", line_result.err().unwrap());
+                continue;
+            }
+            let line = line_result.unwrap();
+            let parse_result = ProtocolParser::parse_line(&line);
+            if parse_result.is_err() {
+                println!("{:?}", parse_result.err().unwrap());
+                continue;
+            }
+            let cmd = parse_result.unwrap();
+            let mut s = storage.lock().unwrap();
+            match cmd {
+                Command::Pop { count } => match s.pop(count) {
+                    Some(storage_items) => for storage_item in storage_items {
+                        writer.write(&storage_item.data).unwrap();
+                        writer.write(b"\n").unwrap();
+                    },
+                    None => {
+                        writer.write(b"\n").unwrap();
                     }
                 },
-            }
+                Command::Push { priority, data } => {
+                    s.push(priority, data);
+                    writer.write(b"OK\n").unwrap();
+                }
+                Command::Clear => {
+                    s.clear();
+                    writer.write(b"OK\n").unwrap();
+                }
+            };
         }
     }
 }
