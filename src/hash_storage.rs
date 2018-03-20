@@ -34,17 +34,16 @@ impl Storage for HashStorage {
                 Some(priority) => {
                     let mut priority_elements = self.elements.get_mut(&priority).unwrap();
                     let missing_elements = count - found;
-                    let needed_index = missing_elements;
-                    let last_index = priority_elements.len();
-                    let end_index = match needed_index > last_index {
-                        true => last_index,
-                        false => needed_index,
+                    let len = priority_elements.len();
+                    let range_end = match missing_elements > len {
+                        true => len,
+                        false => missing_elements,
                     };
 
                     let mut drained_elements: Vec<StorageItem> =
-                        priority_elements.drain(0..end_index).collect();
+                        priority_elements.drain(0..range_end).collect();
                     items.append(&mut drained_elements);
-                    found += end_index;
+                    found += range_end;
                 }
                 None => break,
             }

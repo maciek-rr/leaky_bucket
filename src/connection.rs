@@ -1,5 +1,5 @@
 use std::net::TcpStream;
-use std::io::{BufRead, BufReader, Error, Write};
+use std::io::{BufRead, BufReader, Write};
 use std::sync::{Arc, Mutex};
 use storage;
 
@@ -73,20 +73,7 @@ impl Connection {
         Connection {}
     }
 
-    pub fn handle<T: storage::Storage>(
-        &mut self,
-        stream: Result<TcpStream, Error>,
-        storage: Arc<Mutex<T>>,
-    ) {
-        match stream {
-            Ok(stream) => {
-                self.handle_stream(stream, storage);
-            }
-            Err(e) => println!("Error handling connection {:?}", e),
-        }
-    }
-
-    fn handle_stream<T: storage::Storage>(&mut self, stream: TcpStream, storage: Arc<Mutex<T>>) {
+    pub fn handle<T: storage::Storage>(&mut self, stream: TcpStream, storage: Arc<Mutex<T>>) {
         let mut writer = stream.try_clone().expect("Clone failed");
         let reader = BufReader::new(stream);
 
